@@ -2,8 +2,6 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 
-
-
 let notes = [
   {
     id: 1,
@@ -24,11 +22,6 @@ let notes = [
     important: true,
   },
 ];
-
-// const app = http.createServer((request, response) => {
-//     response.writeHead(200, {'Context-Type': 'application/json'});
-//     response.end(JSON.stringify(notes));
-// });
 
 app.get("/", (request, response) => {
   response.send("<h1>Hello World</h1>");
@@ -57,14 +50,11 @@ app.delete("/api/notes/:id", (request, response) => {
 
 app.post("/api/notes/", (request, response) => {
   const note = request.body;
-  console.log(note);
-
   if(!note || !note.content){
       return response.status(400).json({
           'error': 'note.content is missing'
       })
   }
-
   const ids = notes.map((note) => note.id);
   const maxId = Math.max(...ids);
 
@@ -74,14 +64,12 @@ app.post("/api/notes/", (request, response) => {
     important: typeof note.important != "undefined" ? note.important : false,
     date: new Date().toISOString(),
   };
-
   notes = notes.concat(newNote);
   //notes = [...notes, newNote]; hacen lo mismo
-
   response.json(newNote);
 });
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
