@@ -1,0 +1,23 @@
+{
+  "name": "backend-nodejs-midudev",
+  "version": "1.0.0",
+  "description": "backend creado con midudev youtube",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "daniel arellano",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "2.0.15",
+    "standard": "16.0.4"
+  },
+  "dependencies": {
+    "express": "4.17.3"
+  },
+  "esLintConfig": {
+    "extends": "./node_modules/standard/eslintrc.json"
+  }
+}
