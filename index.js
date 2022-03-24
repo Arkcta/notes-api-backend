@@ -1,75 +1,107 @@
-const express = require("express");
+require('dotenv').config()
+
+require('./mongo');
+
+const express = require('express');
 const app = express();
+const cors = require('cors');
+const Note = require('./models/Note');
+const notFound = require('./middleware/notFound.js');
+const handleErrors = require('./middleware/handleErrors');
+
+app.use(cors());
 app.use(express.json());
 
-let notes = [
-  {
-    id: 1,
-    content: "Me tengo que suscribir a @midudev en YouTube",
-    date: "2019-05-30T17:30:31.098Z",
-    important: true,
-  },
-  {
-    id: 2,
-    content: "Tengo que estudiar las clases del FullStack Bootcamp",
-    date: "2019-05-30T18:39:34.091Z",
-    important: false,
-  },
-  {
-    id: 3,
-    content: "Repasar los retos de JS de midudev",
-    date: "2019-05-30T19:20:14.298Z",
-    important: true,
-  },
-];
+let notes = [];
+
+const generateId = () => {
+  const ids = notes.map((note) => note.id);
+  const maxId = ids.length ? Math.max(...ids) : 0;
+  const newId = maxId + 1;
+  return newId;
+}
 
 app.get("/", (request, response) => {
   response.send("<h1>Hello World</h1>");
 });
 
-app.get("/api/notes", (request, response) => {
-  response.send(notes);
+app.get("/api/notes", async (request, response) => {
+  const notes = await Note.find({});
+  return response.json(notes);
 });
 
-app.get("/api/notes/:id", (request, response) => {
-  const id = Number(request.params.id);
-  const note = notes.find((note) => note.id === id);
+app.get("/api/notes/:id", (request, response, next) => {
+  const id = request.params.id;
 
-  if (note) {
-    response.json(note);
-  } else {
-    response.status(404).end();
-  }
+  Note.findById(id).then(note => {
+    if (note) {
+      response.json(note);
+    } else {
+      response.status(404).end();
+    }
+  }).catch(err => {
+    next(err);
+  });
 });
 
-app.delete("/api/notes/:id", (request, response) => {
-  const id = Number(request.params.id);
-  notes = notes.filter((note) => note.id != id);
-  response.status(204).end();
-});
-
-app.post("/api/notes/", (request, response) => {
+app.put("/api/notes/:id", (request, response, next) => {
+  const { id } = request.params;
   const note = request.body;
-  if(!note || !note.content){
-      return response.status(400).json({
-          'error': 'note.content is missing'
-      })
-  }
-  const ids = notes.map((note) => note.id);
-  const maxId = Math.max(...ids);
 
-  const newNote = {
-    id: maxId + 1,
+  const newNoteInfo = {
+    content: note.content,
+    important: note.important
+  }
+
+  Note.findByIdAndUpdate(id, newNoteInfo, { new: true })
+    .then(result => {
+      response.json(result);
+    }).catch(error => next(error));
+});
+
+app.delete("/api/notes/:id", async (request, response, next) => {
+  const { id } = request.params;
+  try {
+    await Note.findByIdAndRemove(id);
+    response.status(204).end();
+  } catch (error) {
+    next(error)
+  }
+})
+
+app.post("/api/notes/", async (request, response) => {
+  const note = request.body;
+  if (!note || !note.content) {
+    return response.status(400).json({
+      'error': 'note.content is missing'
+    })
+  }
+  const newNote = new Note({
     content: note.content,
     important: typeof note.important != "undefined" ? note.important : false,
     date: new Date().toISOString(),
-  };
-  notes = notes.concat(newNote);
-  //notes = [...notes, newNote]; hacen lo mismo
-  response.json(newNote);
+  });
+
+  // newNote.save().then(savedNote => {
+  //   response.json(savedNote)
+  // }).catch(err => next(err));
+  try {
+    const savedNote = await newNote.save();
+    response.json(savedNote);
+  } catch (error) {
+    next(error)
+  }
+
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+app.use(notFound);
+
+app.use(handleErrors);
+
+
+const PORT = process.env.PORT;
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+module.exports = { app, server };
